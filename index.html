@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>مشوار التوكتوك — القاهرة</title>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&family=Tajawal:wght@500;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--ink:#0b0e14;--glass:rgba(12,16,24,.55);--line:rgba(255,255,255,.2);--tuk:#f4c20d;--clay:#e5483a;--grn:#27c46b;--blue:#2f7cff;
+--st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;background:var(--ink);color:#fff;font-family:"Tajawal",Tahoma,sans-serif;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+#fl{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none}
+body:not(.playing) .g{display:none!important}
+button{font-family:inherit;color:inherit}
+/* تحميل */
+#loading{position:fixed;inset:0;background:radial-gradient(circle at 50% 40%,#1c2433,#07090d);display:grid;place-items:center;z-index:20;text-align:center;transition:opacity .5s}
+#loading.off{opacity:0;pointer-events:none}
+.ld b{display:block;font:400 9vmin Lalezar,sans-serif;color:var(--tuk)}.ld span{opacity:.8}
+/* الأزرار الصغيرة فوق */
+#bar{position:fixed;top:calc(var(--st) + 2vmin);left:50%;transform:translateX(-50%);display:flex;gap:1.6vmin;z-index:5}
+.rb{width:11vmin;height:11vmin;max-width:56px;max-height:56px;border-radius:50%;border:1.5px solid var(--line);background:var(--glass);backdrop-filter:blur(6px);font-size:4.6vmin;padding:0}
+.rb.off{opacity:.45}
+#zn{position:fixed;top:calc(var(--st) + 14.5vmin);left:50%;transform:translateX(-50%);font-weight:800;font-size:3.2vmin;text-shadow:0 1px 6px #000;pointer-events:none}
+#msg{position:fixed;top:calc(var(--st) + 1px);left:50%;transform:translateX(-50%);padding:.4vmin 2.4vmin;font:800 3vmin Tajawal;border-radius:2vmin;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;z-index:9;background:rgba(12,16,24,.8)}
+/* يمين فوق: اللافتة + الماب */
+#sign{position:fixed;top:calc(var(--st) + 2vmin);right:calc(var(--sr) + 2.5vmin);width:44vmin;max-width:240px;padding:1.2vmin 2vmin;background:linear-gradient(#1b4fa0,#153b7a);border:.5vmin solid #fff;border-radius:1.6vmin;line-height:1.3}
+#sign small{display:block;font-size:2.6vmin;opacity:.85}#sign strong{display:block;font-size:4.6vmin}#sign b{color:var(--tuk);font-size:4.2vmin}
+#mini{position:fixed;top:calc(var(--st) + 25vmin);right:calc(var(--sr) + 4vmin);width:25vmin;height:25vmin;border-radius:50%;overflow:hidden;border:.6vmin solid rgba(255,255,255,.85);background:#222;box-shadow:0 0 0 .5vmin rgba(0,0,0,.35)}
+#mmrot{position:absolute;width:170%;height:170%;left:-35%;top:-35%;transition:transform .25s linear}
+#mmap{width:100%;height:100%;background:#e6dfcb}
+#mini.nt .leaflet-tile-pane{filter:brightness(.9)}
+#marrow{position:absolute;left:50%;top:50%;width:0;height:0;margin:-2.4vmin 0 0 -1.6vmin;border-left:1.6vmin solid transparent;border-right:1.6vmin solid transparent;border-bottom:4.8vmin solid var(--tuk);filter:drop-shadow(0 0 2px #000);z-index:900}
+#mcr{position:absolute;bottom:.6vmin;left:0;right:0;text-align:center;font-size:1.8vmin;opacity:.7;z-index:900;text-shadow:0 0 3px #fff;color:#222}
+.poi{font-size:3.4vmin;text-align:center;line-height:1;filter:drop-shadow(0 1px 2px #000)}
+/* يسار فوق */
+#hudL{position:fixed;top:calc(var(--st) + 2vmin);left:calc(var(--sl) + 2.5vmin);display:grid;gap:1vmin}
+.pill{display:flex;align-items:baseline;gap:1.4vmin;padding:.6vmin 2vmin;background:var(--glass);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:1.8vmin}
+.pill i{font-style:normal;font-size:2.6vmin;opacity:.75}.pill b{font:400 5.4vmin Lalezar,sans-serif;color:var(--tuk)}
+/* لوحة العدادات تحت في النص */
+#dash{position:fixed;left:50%;bottom:calc(var(--sb) + 2vmin);transform:translateX(-50%);text-align:center;pointer-events:none;width:40vmin}
+#spd{line-height:1}#spd b{font:italic 400 17vmin Lalezar,sans-serif;text-shadow:0 .4vmin 2vmin #000;letter-spacing:-.3vmin}#spd i{font-style:normal;font-size:3vmin;opacity:.85;margin-inline-start:1vmin}
+#gw{display:flex;align-items:center;gap:1.6vmin;justify-content:center;margin:.4vmin 0 1vmin}
+#gear{width:6.4vmin;height:6.4vmin;border-radius:1.2vmin;background:var(--tuk);color:#111;font:400 5vmin Lalezar,sans-serif;display:grid;place-items:center}
+#rpm{flex:1;height:2vmin;border-radius:1vmin;background:rgba(255,255,255,.18);overflow:hidden}
+#rpmf{display:block;height:100%;width:20%;background:linear-gradient(90deg,#27c46b,#f4c20d 65%,#e5483a)}
+#bars{display:grid;grid-template-columns:repeat(3,1fr);gap:1.6vmin;font-size:2.4vmin}
+#bars span{display:block;text-align:start}#bars s{display:block;height:1.2vmin;border-radius:1vmin;background:var(--tuk);margin-top:.4vmin;width:100%;transition:width .2s}
+#bars span:nth-child(2) s{background:#5ad17a}#bars span:nth-child(3) s{background:var(--blue)}
+/* أزرار التحكم */
+.btn{position:fixed;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6vmin;border:1.5px solid var(--line);background:var(--glass);backdrop-filter:blur(6px);border-radius:3vmin;padding:0;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font:800 3vmin Tajawal;transition:transform .06s,background .1s,box-shadow .1s;z-index:4}
+.btn svg{width:42%;height:auto;max-height:46%;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.btn span{pointer-events:none}
+.btn.on{transform:scale(.94)}
+#lb,#rb{width:22vmin;height:22vmin;bottom:calc(var(--sb) + 3vmin);border-radius:50%;background:rgba(255,255,255,.14)}
+#lb{left:calc(var(--sl) + 3vmin)}#rb{left:calc(var(--sl) + 27vmin)}
+#lb svg,#rb svg{width:46%;stroke-width:2.6}
+#lb.on,#rb.on{background:rgba(255,255,255,.4)}
+#gs{right:calc(var(--sr) + 3vmin);bottom:calc(var(--sb) + 3vmin);width:19vmin;height:38vmin}
+#gs.on{background:rgba(39,196,107,.65);box-shadow:0 0 3vmin rgba(39,196,107,.7)}
+#bk{right:calc(var(--sr) + 25vmin);bottom:calc(var(--sb) + 3vmin);width:19vmin;height:27vmin}
+#bk.on{background:rgba(229,72,58,.7);box-shadow:0 0 3vmin rgba(229,72,58,.7)}
+#hb{right:calc(var(--sr) + 25vmin);bottom:calc(var(--sb) + 32vmin);width:19vmin;height:12vmin;flex-direction:row;font-size:2.6vmin;border-radius:2.4vmin}
+#hb svg{width:30%}#hb.on{background:rgba(255,160,40,.7)}
+#ni{right:calc(var(--sr) + 3vmin);bottom:calc(var(--sb) + 43vmin);width:19vmin;height:13vmin;flex-direction:row;font-size:2.6vmin;border-radius:2.4vmin;background:rgba(47,124,255,.35)}
+#ni svg{width:26%;stroke:#8fc0ff}#ni.on{background:rgba(47,124,255,.85);box-shadow:0 0 3vmin rgba(47,124,255,.8)}
+/* خريطة كاملة */
+#big{position:fixed;inset:0;background:#0b0e14;z-index:12;display:flex;flex-direction:column}
+#bmap{flex:1;min-height:0}#bnote{padding:1vmin 2vmin;font-size:3vmin;text-align:center}
+#bx2{margin:1.4vmin auto;padding:1.6vmin 6vmin;border:0;border-radius:2vmin;background:var(--tuk);color:#111;font:400 4.4vmin Lalezar,sans-serif;z-index:1000}
+.zlab{font:800 3vmin Tajawal,sans-serif;color:#fff;text-align:center;text-shadow:0 0 4px #000,0 0 4px #000;white-space:nowrap}
+.ltip{font:800 2.8vmin Tajawal,sans-serif;background:rgba(255,255,255,.9);border:0;color:#222;padding:0 1vmin}
+/* كارت البداية */
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(7,9,13,.55);backdrop-filter:blur(4px);padding:2vmin;z-index:10}
+.card{background:linear-gradient(#141b27,#0b0e14);border:.4vmin solid var(--tuk);border-radius:3vmin;padding:3vmin 4vmin;width:min(560px,94vw);max-height:96vh;overflow:auto;text-align:center}
+.card h1{font:400 8vmin/1.1 Lalezar,sans-serif;margin:0 0 1vmin;color:var(--tuk)}.card p{margin:.6vmin 0 1.6vmin;line-height:1.6;font-size:3.2vmin}
+.row{display:flex;align-items:center;justify-content:space-between;gap:2vmin;margin:0 0 1.2vmin}.row label{font-weight:800;font-size:3.2vmin;text-align:start}
+.opt{display:flex;gap:1vmin}.opt button{padding:1.2vmin 2.4vmin;border-radius:1.6vmin;border:.3vmin solid #f2a33a;background:transparent;font-weight:800;font-size:3vmin}
+.opt button.on{background:#f2a33a;color:#111}
+#go{width:100%;margin-top:1vmin;padding:2vmin;border:0;border-radius:2vmin;background:var(--tuk);color:#111;font:400 6vmin Lalezar,sans-serif}
+.card small{display:block;margin-top:1.4vmin;opacity:.7;font-size:2.6vmin}
+/* لف الموبايل */
+#rot{position:fixed;inset:0;background:#0b0e14;color:var(--tuk);display:none;align-items:center;justify-content:center;text-align:center;padding:20px;z-index:30;font:400 9vmin Lalezar,sans-serif}
+@media (orientation:portrait){#rot{display:flex}}
+#fps{position:fixed;top:calc(var(--st) + 19vmin);left:50%;transform:translateX(-50%);font:800 2.6vmin ui-monospace,monospace;color:#7dffb0;text-shadow:0 1px 4px #000;pointer-events:none}
+.badge{display:inline-block;margin:0 0 1.2vmin;padding:.4vmin 2vmin;border-radius:2vmin;background:linear-gradient(90deg,#27c46b,#f4c20d);color:#111;font:800 2.8vmin Tajawal,sans-serif;letter-spacing:.2vmin}
+
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="fl"></div>
+
+<!-- شاشة التحميل -->
+<div id="loading"><div class="ld"><b>مشوار التوكتوك</b><span id="lt">جاري التحميل…</span></div></div>
+
+<!-- الواجهة أثناء اللعب -->
+<div id="hudL" class="g">
+  <div class="pill"><i>الوقت</i><b id="tm">300</b></div>
+  <div class="pill"><i>تعديات</i><b id="ov2">0</b></div>
+  <div class="pill"><i>لفة</i><b id="km">1</b></div>
+</div>
+<div id="bar" class="g">
+  <button class="rb" id="ps" aria-label="إيقاف">❚❚</button>
+  <button class="rb" id="mp" aria-label="الخريطة">🗺</button>
+  <button class="rb" id="tn" aria-label="نهار/ليل">☀️</button>
+  <button class="rb" id="hn" aria-label="كلاكس">📢</button>
+</div>
+<div id="zn" class="g"></div>
+<div id="fps" class="g">-- FPS</div>
+<div id="msg"></div>
+<div id="sign" class="g"><small>الجاية</small><strong id="sn">—</strong><b id="sk">0.0 كم</b></div>
+<div id="mini" class="g"><div id="mmrot"><div id="mmap"></div></div><i id="marrow"></i><span id="mcr">© OSM</span></div>
+<div id="dash" class="g">
+  <div id="spd"><b id="sp">0</b><i>كم/س</i></div>
+  <div id="gw"><div id="gear">1</div><div id="rpm"><u id="rpmf"></u></div></div>
+  <div id="bars"><span>بنزين<s id="fu"></s></span><span>الحالة<s id="dm"></s></span><span>نايترو<s id="nt"></s></span></div>
+</div>
+
+<!-- أزرار التحكم: شمال = التوجيه / يمين = البنزين والفرامل والهاند والنايترو -->
+<button class="btn g" id="lb" aria-label="شمال"><svg viewBox="0 0 24 24"><path d="M15 4 7 12l8 8"/></svg></button>
+<button class="btn g" id="rb" aria-label="يمين"><svg viewBox="0 0 24 24"><path d="m9 4 8 8-8 8"/></svg></button>
+<button class="btn g" id="gs" aria-label="بنزين"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="3"/><path d="M9.5 7h5M9.5 11h5M9.5 15h5"/></svg><span>بنزين</span></button>
+<button class="btn g" id="bk" aria-label="فرامل"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3"/><path d="M8 10h8M8 14h8"/></svg><span>فرامل</span></button>
+<button class="btn g" id="hb" aria-label="هاند"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 16V8h4a2.5 2.5 0 0 1 0 5H9"/></svg><span>هاند</span></button>
+<button class="btn g" id="ni" aria-label="نايترو"><svg viewBox="0 0 24 24"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-4 3-7 1 1 2 2 3 5 1-3 0-6 0-10Z"/></svg><span>نايترو</span></button>
+
+<!-- الخريطة الكاملة (OpenStreetMap) -->
+<div id="big" hidden><div id="bmap"></div><div id="bnote"></div><button id="bx2">إغلاق الخريطة</button></div>
+
+<!-- كارت البداية + الإعدادات -->
+<div id="ov"><div class="card">
+  <h1 id="t">مشوار التوكتوك</h1>
+  <div class="badge">ULTRA HD 4K · HDR</div>
+  <p id="d">من المعادي لوسط البلد على كورنيش النيل. اسبق التكاتك، هدّي عند الرادار، وادخل المحطة والورشة.</p>
+  <div class="row"><label>حساسية التوجيه</label><div class="opt" data-set="sens"><button data-v="0.7">خفيفة</button><button data-v="1">عادية</button><button data-v="1.4">جامدة</button></div></div>
+  <div class="row"><label>بنزين</label><div class="opt" data-set="auto"><button data-v="0">يدوي</button><button data-v="1">تلقائي</button></div></div>
+  <button id="go">يلا ابدأ</button>
+  <small>كيبورد: الأسهم للتوجيه · ↑ بنزين · ↓ فرامل · H هاند · N نايترو</small>
+</div></div>
+<div id="rot">لفّ الموبايل بالعرض 📱</div>
+
+<script type="text/x-game" id="gsrc">
+'use strict';
+/* ===== config.js ===== */
+/* ============================================================
+   config.js — الإعدادات + المسار (حقيقي من OSRM أو احتياطي)
+   عدّل هنا: المسار، المناطق، الموديلات، عدد العربيات
+   ============================================================ */
+const CFG={
+  useOSRM:true,                                            // true = مسار حقيقي من خدمة OSRM
+  osrm:'https://router.project-osrm.org/route/v1/driving/',
+  tiles:{day:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+         night:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'},
+  traffic:56,
+  // موديلات 3D اختيارية (GLB). سيبها null وهيستخدم الموديلات المرسومة بالكود.
+  // مثال: tuk:{url:'models/tuktuk.glb',len:2.7,rotY:0}   (len = الطول بالمتر، rotY = دوران بالراديان لو الموديل مش بيبص لقدام)
+  models:{tuk:null,sedan:null,taxi:null,micro:null,bus:null,truck:null,pickup:null}
+};
+const SL=200,F=.24,HW=7.5,MAX=SL*12,LIM=90;
+const LAT0=29.961,LON0=31.254,KX=96400,KY=110574;
+const XY=(a,o)=>[(o-LON0)*KX,-(a-LAT0)*KY], toLL=(x,z)=>[LAT0-z/KY,LON0+x/KX];
+// نقاط المرور من المعادي لوسط البلد على كورنيش النيل (إحداثيات تقريبية — عدّلها لو حابب)
+const WPT=[[29.961,31.254],[29.970,31.250],[29.982,31.244],[29.995,31.236],[30.006,31.230],[30.017,31.229],[30.027,31.231],[30.035,31.233],[30.044,31.235]];
+const ZREF=[['المعادي',29.961,31.254],['كورنيش المعادي',29.970,31.250],['البساتين',29.995,31.236],['مصر القديمة',30.006,31.230],['المنيل',30.017,31.229],['جاردن سيتي',30.027,31.231],['وسط البلد',30.035,31.233]];
+const ZN=[...ZREF.map(z=>z[0]),'طريق العودة'];
+const LANDMARKS=[[30.0459,31.2243,'برج القاهرة'],[30.0478,31.2336,'المتحف المصري'],[30.0437,31.2357,'ميدان التحرير'],[30.0068,31.2324,'جامع عمرو'],[30.0225,31.2255,'قصر المنيل']];
+
+let N=4800,TL=N*SL,LT=22000,U=LT/TL,SG=LT/N,PX=[],PZ=[],DX=[],DZ=[],segs=[],ZB=[],OE=0,RAD=[],GAS=[],WRK=[],GAN=[],GM={},ROUTE_LL=[],ROUTE_SRC='';
+const hs=i=>{const s=Math.sin(i*127.1+311.7)*43758.5453;return s-Math.floor(s)};
+const zone=i=>{i=(i%N+N)%N;let z=0;for(let k=1;k<ZB.length;k++)if(i>=ZB[k])z=k;return z};
+
+/* ---------- مسار احتياطي (منحنى ناعم) لو OSRM مش متاح ---------- */
+function fallbackRoute(){
+  const CP=[...WPT.map(q=>XY(q[0],q[1])),...WPT.slice().reverse().map((q,i)=>{const t=XY(q[0],q[1]);return[t[0]+(i<1?900:1500),t[1]]})];
+  const crp=(a,b,c,d,t)=>a.map((_,i)=>.5*(2*b[i]+(-a[i]+c[i])*t+(2*a[i]-5*b[i]+4*c[i]-d[i])*t*t+(-a[i]+3*b[i]-3*c[i]+d[i])*t*t*t));
+  const DN=[];for(let k=0;k<CP.length;k++){const a=CP[(k+CP.length-1)%CP.length],b=CP[k],c=CP[(k+1)%CP.length],d=CP[(k+2)%CP.length];for(let q=0;q<40;q++)DN.push(crp(a,b,c,d,q/40))}
+  return{xy:DN,join:8*40};
+}
+/* ---------- مسار حقيقي من OSRM ---------- */
+async function osrmRoute(pts){
+  const url=CFG.osrm+pts.map(p=>p[1]+','+p[0]).join(';')+'?overview=full&geometries=geojson';
+  const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),7000);
+  try{const r=await fetch(url,{signal:ctl.signal}),j=await r.json();if(j.code!=='Ok')throw new Error('osrm');return j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]])}
+  finally{clearTimeout(t)}
+}
+async function loadRoute(){
+  let r=null;ROUTE_SRC='احتياطي';
+  if(CFG.useOSRM&&typeof fetch==='function'){
+    try{const a=await osrmRoute(WPT),b=await osrmRoute([WPT[WPT.length-1],WPT[0]]);
+      const xy=[...a,...b.slice(1,-1)].map(p=>XY(p[0],p[1]));
+      if(xy.length>50){r={xy,join:a.length-1};ROUTE_SRC='OSRM'}}catch(e){}
+  }
+  if(!r)r=fallbackRoute();
+  setRoute(r.xy,r.join);
+}
+/* ---------- تحويل خط المسار لشبكة قطاعات متساوية + تنعيم + إزاحة يمين ---------- */
+function headings(){DX=[];DZ=[];for(let i=0;i<N;i++){const j=(i+1)%N,dx=PX[j]-PX[i],dz=PZ[j]-PZ[i],m=Math.hypot(dx,dz)||1;DX.push(dx/m);DZ.push(dz/m)}}
+function setRoute(xy,join){
+  const n0=xy.length,cum=[0];
+  for(let i=1;i<n0;i++)cum.push(cum[i-1]+Math.hypot(xy[i][0]-xy[i-1][0],xy[i][1]-xy[i-1][1]));
+  const total=cum[n0-1]+Math.hypot(xy[0][0]-xy[n0-1][0],xy[0][1]-xy[n0-1][1]);
+  N=Math.max(2500,Math.min(6500,Math.round(total/4.6)));TL=N*SL;LT=total;U=LT/TL;SG=LT/N;
+  PX=[];PZ=[];
+  for(let i=0,j=0;i<N;i++){const t=i*total/N;while(j<n0-1&&cum[j+1]<=t)j++;const a=xy[j],b=xy[(j+1)%n0],sl=((j<n0-1?cum[j+1]:total)-cum[j])||1,f=Math.min(1,(t-cum[j])/sl);PX.push(a[0]+(b[0]-a[0])*f);PZ.push(a[1]+(b[1]-a[1])*f)}
+  OE=Math.round(cum[Math.min(join,n0-1)]/total*N);
+  for(let p=0;p<6;p++){const ax=PX.slice(),az=PZ.slice();for(let i=0;i<N;i++){const a=(i+N-1)%N,b=(i+1)%N;PX[i]=(ax[a]+2*ax[i]+ax[b])/4;PZ[i]=(az[a]+2*az[i]+az[b])/4}}
+  headings();
+  for(let i=0;i<N;i++){PX[i]+=-DZ[i]*12;PZ[i]+=DX[i]*12}      // المرور يمين: كل اتجاه ينزاح 12م يمين فيتفصل عن الاتجاه التاني
+  headings();
+  segs=[];for(let i=0;i<N;i++){const j=(i+1)%N;let d=Math.atan2(DZ[j],DX[j])-Math.atan2(DZ[i],DX[i]);d=Math.atan2(Math.sin(d),Math.cos(d));segs.push({curve:Math.max(-3.5,Math.min(3.5,d*400)),dh:d})}
+  // بداية كل منطقة = أقرب نقطة على المسار لإحداثيات المنطقة
+  ZB=[];let prev=0;
+  ZREF.forEach((z,k)=>{const r=XY(z[1],z[2]);let bi=prev,bd=1e18;for(let i=prev;i<=OE;i++){const d=(PX[i]-r[0])**2+(PZ[i]-r[1])**2;if(d<bd){bd=d;bi=i}}
+    const v=k?Math.min(Math.max(bi,prev+10),OE-10):0;ZB.push(v);prev=v});
+  ZB.push(OE+1);
+  RAD=[.11,.40,.80].map(f=>Math.round(f*N));GAS=[Math.round(.23*N)];GAS.push(GAS[0]+14);WRK=[Math.round(.69*N)];WRK.push(WRK[0]+14);
+  GAN=[{i:GAS[0]-120,t:'محطة بنزين ٥٠٠م',c:'#1f5fa8'},{i:WRK[0]-120,t:'ورشة صيانة ٥٠٠م',c:'#1f5fa8'}];
+  ZN.forEach((n,z)=>GAN.push({i:ZB[z],t:n,c:'#1f7a4a'}));
+  RAD.forEach(r=>{GAN.push({i:r-120,t:'رادار '+LIM+' كم/س',c:'#f2c230'});GAN.push({i:r,t:String(LIM),c:'#f2c230',r:1})});
+  GM={};GAN.forEach(o=>GM[((o.i%N)+N)%N]=o);
+  ROUTE_LL=[];for(let i=0;i<N;i+=4)ROUTE_LL.push(toLL(PX[i],PZ[i]));ROUTE_LL.push(ROUTE_LL[0]);
+}
+
+/* ===== vehicles.js ===== */
+/* ============================================================
+   vehicles.js — العربيات: مجسّمات من منحنيات جانبية + طلاء لامع + زجاج
+   (وتقدر تستبدل أي نوع بموديل GLB من config.js)
+   ============================================================ */
+let GLASS,TIRE,RIM,CHR,BM,GLOW;const MC={},GC={};
+const mat=(c,o)=>{const k=c+JSON.stringify(o||{});return MC[k]||(MC[k]=new THREE.MeshStandardMaterial(Object.assign({color:SRGB(c),roughness:.7,metalness:.05},o||{})))};
+const paint=c=>MC['p'+c]||(MC['p'+c]=new THREE.MeshPhysicalMaterial({color:SRGB(c),metalness:.55,roughness:.32,clearcoat:1,clearcoatRoughness:.1}));
+function initMats(){
+  GLASS=new THREE.MeshPhysicalMaterial({color:SRGB('#10161d'),metalness:.9,roughness:.06});
+  TIRE=mat('#111214',{roughness:.9});RIM=mat('#b8bcc2',{metalness:.9,roughness:.3});CHR=mat('#2a2d33',{roughness:.5,metalness:.4});
+  BM=B('#ff2a22');GLOW=B('#fff3b0');
+}
+function prof(key,a,len,wd,m,bv){
+  if(!GC[key]){const sh=new THREE.Shape();
+    a.forEach((p,i)=>{if(!i)sh.moveTo(p[0],p[1]);else if(p.length===2)sh.lineTo(p[0],p[1]);else sh.quadraticCurveTo(p[0],p[1],p[2],p[3])});
+    bv=bv||.06;const gm=new THREE.ExtrudeGeometry(sh,{depth:wd,bevelEnabled:true,bevelThickness:bv,bevelSize:bv,bevelSegments:3,curveSegments:12});
+    gm.translate(-len/2,0,-wd/2);gm.rotateY(-Math.PI/2);GC[key]=gm}
+  return new THREE.Mesh(GC[key],m);
+}
+function bx(g,w,h,d,x,y,z,c,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m||mat(c));o.position.set(x,y,z);g.add(o);return o}
+let WG,RG;
+function wl(g,x,z,r,w){w=w||.26;WG=WG||new THREE.CylinderGeometry(1,1,1,20);RG=RG||new THREE.CylinderGeometry(.62,.62,1.02,16);
+  const t=new THREE.Mesh(WG,TIRE);t.rotation.z=Math.PI/2;t.scale.set(r,w,r);t.position.set(x,r,z);g.add(t);
+  const m=new THREE.Mesh(RG,RIM);m.rotation.z=Math.PI/2;m.scale.set(r,w,r);m.position.set(x,r,z);g.add(m)}
+function blob(g,w,l){const o=new THREE.Mesh(new THREE.PlaneGeometry(w,l),B('#000',{transparent:true,opacity:.35}));o.rotation.x=-Math.PI/2;o.position.y=.06;g.add(o)}
+
+const SED=[[0,.38],[0,.82],[.06,.98,.3,1.0],[1.0,1.02],[1.38,1.1,1.72,1.45],[2.0,1.56,2.5,1.5],[2.9,1.45,3.3,1.06],[4.0,.98],[4.35,.92,4.4,.7],[4.4,.38]];
+const SEDG=[[1.1,1.04],[1.4,1.1,1.78,1.4],[2.0,1.47,2.45,1.44],[2.85,1.4,3.22,1.06]];
+function mkSedan(col,taxi){const g=new THREE.Group();g.add(prof('sed',SED,4.4,1.78,paint(col)));g.add(prof('sedg',SEDG,4.4,1.84,GLASS,.02));
+  for(const z of[2.2,-2.2])bx(g,1.9,.2,.28,0,.45,z,0,CHR);bx(g,1.0,.18,.05,0,.74,2.28,0,CHR);
+  for(const s of[-1,1]){bx(g,.42,.14,.06,s*.62,.82,2.25,0,GLOW);bx(g,.44,.14,.06,s*.6,.86,-2.25,0,BM);bx(g,.12,.1,.22,s*.98,1.12,.9,0,paint(col));for(const z of[-1.36,1.36])wl(g,s*.86,z,.34)}
+  bx(g,.5,.16,.03,0,.62,-2.27,'#e8ecf0');
+  if(taxi){bx(g,1.96,.3,3.5,0,.64,-.1,'#0c0c0c');bx(g,.55,.16,.28,0,1.64,-.1,0,B('#f4c20d'))}
+  blob(g,2.3,4.8);return g}
+const MIC=[[0,.42],[0,1.95],[.05,2.05,.3,2.05],[3.95,2.05],[4.4,2.05,4.75,1.35],[5.15,1.12],[5.3,1.05,5.3,.85],[5.3,.42]];
+function mkMicro(){const g=new THREE.Group();g.add(prof('mic',MIC,5.3,1.9,paint('#f1efe8')));g.add(prof('micg',[[.45,1.35],[.45,1.88],[3.9,1.88],[4.55,1.4]],5.3,1.96,GLASS,.02));
+  bx(g,2.0,.2,4.4,0,1.02,-.3,'#2c4f9e');bx(g,1.2,.2,.05,0,.7,2.68,0,CHR);
+  for(const s of[-1,1]){bx(g,.4,.18,.06,s*.65,.9,2.66,0,GLOW);bx(g,.3,.3,.06,s*.8,1.2,-2.68,0,BM);for(const z of[-1.6,1.7])wl(g,s*.88,z,.37)}
+  blob(g,2.2,5.6);return g}
+const PU=[[0,.45],[0,1.12],[2.3,1.12],[2.35,1.7],[2.6,1.82,3.2,1.8],[3.7,1.78,4.0,1.2],[4.7,1.12],[4.85,1.0,4.85,.8],[4.85,.45]];
+function mkPickup(col){const g=new THREE.Group();g.add(prof('pu',PU,4.85,1.85,paint(col)));g.add(prof('pug',[[2.5,1.22],[2.5,1.68],[3.2,1.7],[3.85,1.24]],4.85,1.9,GLASS,.02));bx(g,1.7,.05,2.1,0,1.14,-1.2,'#222');
+  for(const s of[-1,1]){bx(g,.4,.16,.06,s*.65,.88,2.45,0,GLOW);bx(g,.36,.16,.06,s*.65,.86,-2.45,0,BM);for(const z of[-1.5,1.5])wl(g,s*.9,z,.38)}
+  blob(g,2.3,5.2);return g}
+const BUS=[[0,.5],[0,3.0],[0,3.4,.45,3.4],[10.4,3.4],[11,3.4,11,2.9],[11,.5]];
+function mkBus(){const g=new THREE.Group();g.add(prof('bus',BUS,11,2.5,paint('#e9eef5')));g.add(prof('busg',[[.9,1.75],[.9,2.95],[10.3,2.95],[10.3,1.75]],11,2.56,GLASS,.02));
+  bx(g,2.6,.5,10.6,0,1.2,0,'#2c4f9e');bx(g,2.3,1.3,.05,0,2.3,5.55,0,GLASS);
+  for(const s of[-1,1]){bx(g,.4,.2,.06,s*.9,.9,5.52,0,GLOW);bx(g,.4,.2,.06,s*.9,.9,-5.52,0,BM);for(const z of[-3.2,3.2])wl(g,s*1.2,z,.55,.32)}
+  blob(g,2.9,11.4);return g}
+const TCAB=[[0,.7],[0,3.0],[1.8,3.0],[2.5,2.0],[2.6,.7]];
+function mkTruck(col){const g=new THREE.Group(),c=prof('tcab',TCAB,2.6,2.4,paint(col));c.position.z=3.7;g.add(c);
+  const gl=prof('tcabg',[[1.0,2.1],[1.0,2.85],[1.75,2.85],[2.3,2.05]],2.6,2.46,GLASS,.02);gl.position.z=3.7;g.add(gl);
+  bx(g,2.55,3.2,6.6,0,2.4,-.9,'#4b5740');bx(g,2.2,.3,.1,0,.9,5.0,0,CHR);
+  for(const s of[-1,1]){bx(g,.4,.2,.06,s*.9,1.0,5.03,0,GLOW);bx(g,.4,.2,.06,s*.9,.9,-4.22,0,BM);for(const z of[3.6,-1.5,-3.5])wl(g,s*1.1,z,.55,.3)}
+  blob(g,2.9,10.6);return g}
+const TB=[[0,.5],[0,1.1],[0,1.3,.35,1.32],[1.1,1.25],[1.5,1.2,1.7,1.05],[2.3,1.15,2.55,.85],[2.7,.7,2.7,.5]],TR=[[.1,1.78],[1.4,2.25,2.65,1.9],[2.65,1.82],[1.4,2.15,.1,1.7]];
+function mkTuk(col,roof,driver){const g=new THREE.Group();g.add(prof('tkb',TB,2.7,1.25,paint(col),.05));g.add(prof('tkr',TR,2.7,1.45,paint(roof||'#16130f'),.03));
+  for(const s of[-1,1]){bx(g,.06,.75,.06,s*.66,1.47,.95,'#14110d');bx(g,.06,.6,.06,s*.66,1.5,-.85,'#14110d')}
+  bx(g,1.2,.62,.03,0,1.5,1.0,0,GLASS).rotation.x=-.45;bx(g,1.05,.3,.45,0,.95,-.75,'#352419');bx(g,.55,.3,.4,0,.92,.45,'#241c16');
+  wl(g,0,1.15,.27,.14);bx(g,.36,.1,.7,0,.62,1.15,0,paint(col));wl(g,-.64,-.85,.3,.16);wl(g,.64,-.85,.3,.16);
+  bx(g,.3,.18,.08,0,.98,1.4,0,GLOW);bx(g,.18,.1,.05,-.5,.82,-1.38,0,BM);bx(g,.18,.1,.05,.5,.82,-1.38,0,BM);bx(g,.42,.14,.03,0,.66,-1.4,'#e8ecf0');bx(g,.7,.04,.04,0,1.22,.9,0,CHR);
+  if(driver){const h=new THREE.Mesh(new THREE.SphereGeometry(.16,12,10),mat('#c68e63'));h.position.set(0,1.58,.4);g.add(h);bx(g,.42,.5,.28,0,1.15,.4,'#3d4c5e')}
+  blob(g,1.9,3.5);return g}
+
+/* ---------- تجميع العربيات في المشهد ---------- */
+const TYPE_KEYS=['tuk','sedan','bus','truck','taxi','micro','pickup'];
+const SC5=['#e9e6de','#7f858d','#1f2a3a','#7a1f1f','#bfb9a8'];
+function holder(build,key){const h=new THREE.Group(),v=build();h.add(v);h.userData={v,key};return h}
+function buildVehicles(){
+  initMats();
+  const beamTex=(()=>{const c=document.createElement('canvas');c.width=64;c.height=128;const x=c.getContext('2d'),q=x.createLinearGradient(0,128,0,0);q.addColorStop(0,'rgba(255,240,200,.9)');q.addColorStop(1,'rgba(255,240,200,0)');x.fillStyle=q;x.fillRect(0,0,64,128);return new THREE.CanvasTexture(c)})();
+  const BPG=new THREE.PlaneGeometry(4,14);
+  BPM=new THREE.MeshBasicMaterial({map:beamTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide});
+  carM=cars.map((c,i)=>{
+    const b=[()=>mkTuk(c.c,null,true),()=>mkSedan(SC5[i%5]),mkBus,()=>mkTruck('#5e6b4a'),()=>mkSedan('#f2f0ea',true),mkMicro,()=>mkPickup(SC5[(i+2)%5])][c.ty];
+    const m=holder(b,TYPE_KEYS[c.ty]);const bb=new THREE.Mesh(BPG,BPM);bb.rotation.x=Math.PI/2;bb.position.set(0,.09,9);m.add(bb);scene.add(m);return m});
+  player=holder(()=>mkTuk('#1d1a17','#f4c20d',true),'tuk');player.scale.set(1.2,1.2,1.2);scene.add(player);
+  beamM=new THREE.MeshBasicMaterial({map:beamTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,fog:false,side:THREE.DoubleSide});
+  const beam=new THREE.Mesh(new THREE.PlaneGeometry(9,24),beamM);beam.rotation.x=Math.PI/2;beam.position.set(0,.09,14);player.add(beam);
+  HL=[-.55,.55].map(x=>{const l=new THREE.SpotLight(SRGB('#fff0d0'),0,95,.5,.55,1);l.position.set(x,.95,1.4);l.target.position.set(x*.6,0,30);player.add(l);player.add(l.target);return l});
+  tryModels();
+}
+/* ---------- موديلات GLB اختيارية ---------- */
+function tryModels(){
+  if(!THREE.GLTFLoader)return;const ld=new THREE.GLTFLoader();
+  if(THREE.DRACOLoader){const d=new THREE.DRACOLoader();d.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');ld.setDRACOLoader(d)}
+  Object.keys(CFG.models).forEach(k=>{const m=CFG.models[k];if(!m||!m.url)return;
+    ld.load(m.url,g=>{const o=g.scene,bb=new THREE.Box3().setFromObject(o),sz=new THREE.Vector3();bb.getSize(sz);
+      const len=Math.max(sz.x,sz.z)||1,s=(m.len||4.4)/len;o.scale.setScalar(s);o.rotation.y=m.rotY||0;
+      const b2=new THREE.Box3().setFromObject(o),ct=new THREE.Vector3();b2.getCenter(ct);o.position.set(-ct.x,-b2.min.y,-ct.z);
+      const wrap=new THREE.Group();wrap.add(o);
+      [...carM,player].forEach(h=>{if(h.userData.key!==k)return;h.remove(h.userData.v);const c=wrap.clone(true);h.add(c);h.userData.v=c});
+    },undefined,()=>{});
+  });
+}
+
+/* ===== world.js ===== */
+/* ============================================================
+   world.js — العالم 3D: سما HDR، طريق، مباني، نخل، إضاءة نهار/ليل،
+   كشافات حقيقية، وتأثيرات سينمائية (Bloom + تحويل ألوان + Motion blur)
+   ============================================================ */
+let scene,cam,renderer,composer,bloom,finalP,post=false,skyU,skyM,skyScene,pmrem,hemi,sun,moon,RDM,WM,groundM,bMat,lampM,poolM,BPM,beamM,radM,HL=[],carM=[],player;
+let night=0,nightT=0,lastT=0,W=innerWidth,H=innerHeight,res=3840,fxWanted=true,hd=0,chd=0;
+const MT=new THREE.Matrix4(),QQ=new THREE.Quaternion(),PS=new THREE.Vector3(),SC=new THREE.Vector3(),AX=new THREE.Vector3(0,1,0),ONE=new THREE.Vector3(1,1,1);
+const SRGB=c=>new THREE.Color(c).convertSRGBToLinear();
+const B=(c,o)=>new THREE.MeshBasicMaterial(Object.assign({color:SRGB(c)},o||{}));
+function wp(p){const u=((p/SL)%N+N)%N,i=Math.floor(u),f=u-i,j=(i+1)%N;let dx=DX[i]+(DX[j]-DX[i])*f,dz=DZ[i]+(DZ[j]-DZ[i])*f;const m=Math.hypot(dx,dz)||1;return{x:PX[i]+(PX[j]-PX[i])*f,z:PZ[i]+(PZ[j]-PZ[i])*f,dx:dx/m,dz:dz/m}}
+function tex(t,bg,fg,w,h){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle=bg;x.fillRect(0,0,w,h);x.fillStyle=fg;x.font='800 '+Math.round(h*.52)+'px Tajawal,Tahoma,sans-serif';x.textAlign='center';x.textBaseline='middle';x.fillText(t,w/2,h/2+4);const r=new THREE.CanvasTexture(c);r.encoding=THREE.sRGBEncoding;return r}
+function asphaltTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#c8c8c8';x.fillRect(0,0,128,128);
+  for(let i=0;i<2200;i++){const v=150+Math.random()*90|0;x.fillStyle='rgb('+v+','+v+','+v+')';x.fillRect(Math.random()*128,Math.random()*128,1.6,1.6)}
+  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t}
+
+/* ---------- شادر السما HDR (شمس > 1.0 + سحب + نجوم + قمر) ---------- */
+const SKY_FS=`uniform vec3 sun;uniform float night;uniform float time;varying vec3 vd;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float n(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h(i),h(i+vec2(1.,0.)),f.x),mix(h(i+vec2(0.,1.)),h(i+vec2(1.,1.)),f.x),f.y);}
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*n(p);p*=2.;a*=.5;}return v;}
+void main(){vec3 d=normalize(vd);float e=clamp(d.y,0.,1.);
+vec3 col=mix(vec3(.80,.85,.88),vec3(.14,.34,.76),pow(e,.5));
+float sd=max(dot(d,normalize(sun)),0.);
+col+=vec3(1.,.8,.55)*pow(sd,6.)*.28+vec3(1.,.97,.9)*pow(sd,700.)*6.;
+if(d.y>.01){vec2 uv=d.xz/(d.y+.12)*1.4+vec2(time*.012,0.);float c=smoothstep(.5,.82,fbm(uv));col=mix(col,vec3(1.),c*.85*smoothstep(.01,.25,d.y));}
+vec3 nc=mix(vec3(.045,.06,.11),vec3(.008,.015,.05),pow(e,.5));
+vec2 su=d.xz/(d.y+.25)*55.;nc+=vec3(step(.988,h(floor(su)))*smoothstep(.04,.35,d.y));
+float md=dot(d,normalize(vec3(-.4,.55,-.7)));
+nc+=vec3(.9,.92,1.)*smoothstep(.9986,.9993,md)*3.+vec3(.4,.5,.8)*pow(max(md,0.),30.)*.12;
+col=mix(col,nc,night);gl_FragColor=vec4(pow(col,vec3(2.2)),1.);
+#include <tonemapping_fragment>
+#include <encodings_fragment>
+}`;
+/* ---------- المرحلة الأخيرة: Tone-mapping ACES + ألوان سينمائية + فينييت + Motion blur ---------- */
+const FINAL={uniforms:{tDiffuse:{value:null},speed:{value:0},night:{value:0}},
+vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+fragmentShader:`uniform sampler2D tDiffuse;uniform float speed,night;varying vec2 vUv;
+vec3 aces(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}
+void main(){vec2 c=vUv-.5;float r=length(c);vec3 col=texture2D(tDiffuse,vUv).rgb;float s=speed*.05;
+if(speed>.01){col=vec3(0.);for(int i=0;i<5;i++){float t=float(i)/4.;col+=texture2D(tDiffuse,.5+c*(1.-s*t*r*2.)).rgb;}col/=5.;
+float ca=.0012+speed*.004;col.r=mix(col.r,texture2D(tDiffuse,.5+c*(1.+ca*r*8.)).r,.6);col.b=mix(col.b,texture2D(tDiffuse,.5+c*(1.-ca*r*8.)).b,.6);}
+float l=dot(col,vec3(.2126,.7152,.0722));
+col=mix(col,col*vec3(.92,1.,1.08),.5*(1.-smoothstep(0.,.6,l)));col=mix(col,col*vec3(1.08,1.,.92),.4*smoothstep(.4,1.5,l));
+col*=mix(1.,1.3,night);col=aces(col);
+col=mix(vec3(dot(col,vec3(.299,.587,.114))),col,1.12);
+col*=1.-.55*smoothstep(.35,.9,r);col=pow(col,vec3(1./2.2));gl_FragColor=vec4(col,1.);}`};
+
+/* ---------- بناء العالم ---------- */
+function buildWorld(){
+  renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:false,powerPreference:'high-performance',stencil:false});
+  renderer.outputEncoding=THREE.sRGBEncoding;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
+  scene=new THREE.Scene();cam=new THREE.PerspectiveCamera(52,1,.3,3200);scene.fog=new THREE.Fog(SRGB('#c9d3d8'),150,1100);
+  hemi=new THREE.HemisphereLight(SRGB('#dbe8ff'),SRGB('#b9a47c'),.85);sun=new THREE.DirectionalLight(SRGB('#fff1dc'),1.25);moon=new THREE.DirectionalLight(SRGB('#8fa8ff'),0);
+  sun.position.set(50,62,40);moon.position.set(-40,55,-70);scene.add(hemi,sun,moon);
+  // سما + بيئة انعكاسات HDR (PMREM)
+  skyU={sun:{value:new THREE.Vector3(50,62,40).normalize()},night:{value:0},time:{value:0}};
+  const skyMat=new THREE.ShaderMaterial({uniforms:skyU,side:THREE.BackSide,depthWrite:false,fog:false,vertexShader:'varying vec3 vd;void main(){vd=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:SKY_FS});
+  skyM=new THREE.Mesh(new THREE.SphereGeometry(2800,32,20),skyMat);scene.add(skyM);
+  skyScene=new THREE.Scene();skyScene.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),skyMat));pmrem=new THREE.PMREMGenerator(renderer);
+  radM=B('#ee3333');
+  // أرض + طريق
+  groundM=new THREE.MeshStandardMaterial({color:SRGB('#bba883'),roughness:1});
+  RDM=new THREE.MeshStandardMaterial({vertexColors:true,map:asphaltTex(),roughness:.92,metalness:0,side:THREE.DoubleSide});
+  WM=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.12,metalness:.15,side:THREE.DoubleSide});
+  const gp=new THREE.Mesh(new THREE.PlaneGeometry(9000,9000),groundM);gp.rotation.x=-Math.PI/2;gp.position.y=-.05;scene.add(gp);
+  const colC={},cc=h=>colC[h]||(colC[h]=SRGB(h));
+  function strip(l1,y1,l2,y2,col,skip,mo){const P=[],C=[],UV=[],I=[];let v=0;
+    for(let i=0;i<N;i++){if(skip&&skip(i))continue;const j=(i+1)%N,c=cc(col(i));
+      [[i,i],[j,i+1]].forEach(([k,ci])=>{const dx=DX[k],dz=DZ[k];for(const[l,y]of[[l1,y1],[l2,y2]]){P.push(PX[k]-dz*l,y,PZ[k]+dx*l);C.push(c.r,c.g,c.b);UV.push((l+y)*.25,ci*SG*.25)}});
+      I.push(v,v+1,v+2,v+2,v+1,v+3);v+=4}
+    if(!I.length)return;const gm=new THREE.BufferGeometry();gm.setAttribute('position',new THREE.Float32BufferAttribute(P,3));gm.setAttribute('color',new THREE.Float32BufferAttribute(C,3));gm.setAttribute('uv',new THREE.Float32BufferAttribute(UV,2));gm.setIndex(I);gm.computeVertexNormals();scene.add(new THREE.Mesh(gm,mo||RDM))}
+  const alt=(a,b)=>i=>(i>>2)&1?a:b,gS=i=>i>=GAS[0]-1&&i<=GAS[1]+1,wS=i=>i>=WRK[0]-1&&i<=WRK[1]+1,GZ=ZB[6]-80;
+  strip(-26,.012,-520,.012,alt('#5b8ea6','#558aa2'),i=>i>OE||i>=GZ,WM);strip(-26,.012,-1100,.012,alt('#5b8ea6','#558aa2'),i=>i<GZ||i>OE,WM);
+  strip(-170,.02,-400,.02,alt('#7f9f5e','#789856'),i=>i<ZB[4]-40||i>ZB[5]+60);strip(-330,.02,-1000,.02,alt('#7f9f5e','#789856'),i=>i<GZ||i>OE);
+  strip(-HW,.02,HW,.02,alt('#5b5e66','#565961'));
+  strip(-HW,.04,-HW+.7,.04,alt('#d4622c','#c9572a'));strip(HW-.7,.04,HW,.04,alt('#d4622c','#c9572a'));
+  for(const l of[-3.75,0,3.75])strip(l-.07,.05,l+.07,.05,()=>'#f1ead7',i=>!((i>>2)&1));
+  const bc=alt('#d6cfc0','#b9b2a4');
+  for(const sd of[-1,1]){const sk=sd>0?gS:wS,a=sd*(HW+.4),b=sd*(HW+.9);strip(a,0,a,.9,bc,sk);strip(a,.9,b,.9,()=>'#e4ddcd',sk);strip(b,.9,b,0,bc,sk)}
+  strip(HW,.03,HW+4.5,.03,()=>'#55514a',gS);strip(-HW-4.5,.03,-HW,.03,()=>'#55514a',wS);
+  // مباني (شبابيك بتنوّر بالليل)
+  const mkFac=lit=>{const c=document.createElement('canvas');c.width=64;c.height=128;const x=c.getContext('2d');x.fillStyle=lit?'#000':'#e9e4d6';x.fillRect(0,0,64,128);
+    for(let r=0;r<10;r++)for(let q=0;q<4;q++){x.fillStyle=lit?(hs(r*7+q*13)>.45?'#ffd890':'#000'):'rgba(40,62,74,.85)';x.fillRect(5+q*15,6+r*12,9,7)}
+    const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.anisotropy=8;return t};
+  bMat=new THREE.MeshStandardMaterial({map:mkFac(0),roughness:.9,metalness:0,emissive:SRGB('#ffd9a0'),emissiveMap:mkFac(1),emissiveIntensity:0});
+  {const bg=new THREE.BoxGeometry(1,1,1);bg.translate(0,.5,0);const bm=new THREE.InstancedMesh(bg,bMat,N),pal=['#d8cfae','#c9b890','#e0d8bf','#bba98a','#d2c4a0'].map(SRGB);let n=0;
+    for(let j=0;j<N&&n<N-2;j+=3)for(const sd of[-1,1]){if(hs(j*7+sd)<.15)continue;if(sd<0&&j<=OE)continue;if(sd>0&&j>=GAS[0]-6&&j<=GAS[1]+6||sd<0&&j>=WRK[0]-6&&j<=WRK[1]+6)continue;
+      const zh=[.9,.5,.7,.7,.9,1.3,1.9,1][zone(j)],w=14+hs(j+sd)*14,h=(12+hs(j*2+sd)*40)*zh,d=14+hs(j*5+sd)*10,off=sd*(HW+14+hs(j*3+sd)*22+w/2);
+      QQ.setFromAxisAngle(AX,Math.atan2(DX[j],DZ[j]));PS.set(PX[j]-DZ[j]*off,0,PZ[j]+DX[j]*off);SC.set(w,h,d);MT.compose(PS,QQ,SC);bm.setMatrixAt(n,MT);bm.setColorAt(n,pal[Math.floor(hs(j+9*sd)*5)]);n++}
+    bm.count=n;scene.add(bm)}
+  // نخل على كورنيش النيل
+  {const tg=new THREE.CylinderGeometry(.16,.26,7,6);tg.translate(0,3.5,0);const cg=new THREE.SphereGeometry(1,8,6);cg.scale(3.4,1.1,3.4);cg.translate(0,7.3,0);
+    const tm=new THREE.InstancedMesh(tg,mat('#6b5a44'),N),cm=new THREE.InstancedMesh(cg,mat('#3f6b32',{roughness:.9}),N);let n=0;
+    for(let j=0;j<N;j+=9){if(gS(j)||wS(j))continue;const o=-(HW+4+hs(j)*2);QQ.setFromAxisAngle(AX,hs(j+3)*6);PS.set(PX[j]-DZ[j]*o,0,PZ[j]+DX[j]*o);const s=.8+hs(j+5)*.5;SC.set(s,s,s);MT.compose(PS,QQ,SC);tm.setMatrixAt(n,MT);cm.setMatrixAt(n,MT);n++}
+    tm.count=cm.count=n;scene.add(tm,cm)}
+  // أعمدة إنارة + بقع ضوء على الأسفلت
+  const poolTex=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),q=x.createRadialGradient(32,32,0,32,32,32);q.addColorStop(0,'rgba(255,225,160,.9)');q.addColorStop(1,'rgba(255,225,160,0)');x.fillStyle=q;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)})();
+  poolM=new THREE.MeshBasicMaterial({map:poolTex,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});lampM=B('#9a927a');
+  {const pg=new THREE.CylinderGeometry(.12,.15,9,6);pg.translate(0,4.5,0);const hg=new THREE.BoxGeometry(1.8,.2,.5);hg.translate(0,9,0);const plg=new THREE.PlaneGeometry(18,18);plg.rotateX(-Math.PI/2);plg.translate(0,.09,0);
+    const pm2=new THREE.InstancedMesh(pg,new THREE.MeshStandardMaterial({color:SRGB('#6b6660'),roughness:.6,metalness:.5}),N),hm=new THREE.InstancedMesh(hg,lampM,N),pl=new THREE.InstancedMesh(plg,poolM,N);let n=0;
+    for(let j=0;j<N;j+=8)for(const sd of[-1,1]){if(sd>0&&gS(j)||sd<0&&wS(j))continue;const o=sd*(HW+1.4);PS.set(PX[j]-DZ[j]*o,0,PZ[j]+DX[j]*o);QQ.setFromAxisAngle(AX,Math.atan2(DX[j],DZ[j])+Math.PI/2);MT.compose(PS,QQ,ONE);pm2.setMatrixAt(n,MT);hm.setMatrixAt(n,MT);
+      const lp=sd*(HW-3);PS.set(PX[j]-DZ[j]*lp,0,PZ[j]+DX[j]*lp);QQ.set(0,0,0,1);MT.compose(PS,QQ,ONE);pl.setMatrixAt(n,MT);n++}
+    pm2.count=hm.count=pl.count=n;scene.add(pm2,hm,pl)}
+  buildVehicles();
+  // لوحات فوق الطريق + رادار
+  GAN.forEach(o=>{const j=((o.i%N)+N)%N,g2=new THREE.Group(),fg=o.c==='#f2c230'?'#1d1a17':'#ffffff',bw=2*(HW+1.6),bd=new THREE.Mesh(new THREE.PlaneGeometry(bw,1.7),new THREE.MeshBasicMaterial({map:tex(o.t,o.c,fg,512,128)}));bd.position.set(0,6.3,0);g2.add(bd);
+    for(const s of[-1,1])bx(g2,.4,6.2,.4,s*(HW+1.4),3.1,0,'#3a3631');
+    if(o.r){bx(g2,1.2,.7,.8,0,5.2,.2,'#14110d');const lp=new THREE.Mesh(new THREE.SphereGeometry(.18,8,6),radM);lp.position.set(0,5.2,.65);g2.add(lp)}
+    g2.position.set(PX[j],0,PZ[j]);g2.rotation.y=Math.atan2(DX[j],DZ[j])+Math.PI;scene.add(g2)});
+  const place=(g,j,off,yaw)=>{g.position.set(PX[j]-DZ[j]*off,0,PZ[j]+DX[j]*off);g.rotation.y=Math.atan2(DX[j],DZ[j])+yaw;scene.add(g)};
+  {const g=new THREE.Group();bx(g,12,.5,9,0,5,0,'#e8453c');for(const x of[-5,5])for(const z of[-3.5,3.5])bx(g,.4,5,.4,x,2.5,z,'#d8d2c4');for(const x of[-2,2])bx(g,.9,1.4,.6,x,.7,0,'#e8453c');
+    const sg=new THREE.Mesh(new THREE.PlaneGeometry(6,1.6),new THREE.MeshBasicMaterial({map:tex('بنزين','#d9482b','#fff',256,72)}));sg.position.set(0,6.3,4.6);g.add(sg);place(g,GAS[0]+6,HW+9,Math.PI/2)}
+  {const g=new THREE.Group();bx(g,12,5,8,0,2.5,0,'#8c8678');bx(g,3.4,3.6,.2,-2.8,1.8,4.05,'#3c3a36');bx(g,3.4,3.6,.2,2.8,1.8,4.05,'#3c3a36');
+    const sg=new THREE.Mesh(new THREE.PlaneGeometry(6,1.6),new THREE.MeshBasicMaterial({map:tex('ورشة','#1f5fa8','#fff',256,72)}));sg.position.set(0,5.9,4.1);g.add(sg);place(g,WRK[0]+6,-(HW+9),-Math.PI/2)}
+  // معالم القاهرة في أماكنها التقريبية
+  const LMK=(a,o,fn)=>{const q=XY(a,o);fn(q[0],q[1])};
+  LMK(30.0459,31.2243,(x,z)=>{const g=new THREE.Group(),a=new THREE.Mesh(new THREE.CylinderGeometry(4,7,160,12),mat('#d2c7b4')),t=new THREE.Mesh(new THREE.SphereGeometry(11,12,8),mat('#cfc2ab')),sp=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,35,6),mat('#9a8f7e'));a.position.y=80;t.position.y=162;t.scale.y=.6;sp.position.y=185;g.add(a,t,sp);g.position.set(x,0,z);scene.add(g)});
+  LMK(30.0435,31.2310,(x,z)=>bx(scene,38,140,24,x,70,z,'#9fa8b4'));
+  LMK(30.0478,31.2336,(x,z)=>bx(scene,70,16,40,x,8,z,'#b87a5a'));
+  LMK(30.0437,31.2357,(x,z)=>bx(scene,120,45,60,x,22,z,'#b9ad92'));
+  LMK(30.0225,31.2255,(x,z)=>{bx(scene,50,12,30,x,6,z,'#c9b98f');bx(scene,14,24,14,x+30,12,z,'#d8cdaa')});
+  LMK(30.0068,31.2324,(x,z)=>{const g=new THREE.Group(),d=new THREE.Mesh(new THREE.SphereGeometry(14,16,10,0,Math.PI*2,0,Math.PI/2),mat('#c9c0a8'));d.position.y=22;g.add(d);bx(g,34,22,34,0,11,0,'#d9d0b8');
+    for(const o of[-26,26]){const m=new THREE.Mesh(new THREE.CylinderGeometry(2,2.6,70,8),mat('#d9d0b8'));m.position.set(o,35,0);g.add(m);const t=new THREE.Mesh(new THREE.ConeGeometry(3,10,8),mat('#6f8f7a'));t.position.set(o,75,0);g.add(t)}g.position.set(x,0,z);scene.add(g)});
+  setupPost();applyTOD(0);regenEnv();size();setFX(fxWanted);
+}
+function regenEnv(){try{const o=scene.environment;scene.environment=pmrem.fromScene(skyScene,.04).texture;if(o&&o.dispose)o.dispose()}catch(e){}}
+
+/* ---------- تأثيرات سينمائية HDR ---------- */
+function setupPost(){
+  try{
+    if(!THREE.EffectComposer||!THREE.UnrealBloomPass||!THREE.ShaderPass||!THREE.RenderPass)return;
+    const rt=new THREE.WebGLRenderTarget(W,H,{type:THREE.HalfFloatType,format:THREE.RGBAFormat,encoding:THREE.LinearEncoding});
+    composer=new THREE.EffectComposer(renderer,rt);composer.addPass(new THREE.RenderPass(scene,cam));
+    bloom=new THREE.UnrealBloomPass(new THREE.Vector2(W,H),.45,.65,.9);composer.addPass(bloom);
+    finalP=new THREE.ShaderPass(FINAL);composer.addPass(finalP);
+  }catch(e){composer=null}
+}
+function setFX(on){
+  fxWanted=on;post=!!(on&&composer);
+  if(!renderer)return;
+  renderer.toneMapping=post?THREE.NoToneMapping:THREE.ACESFilmicToneMapping;
+  scene.traverse(o=>{if(o.material)[].concat(o.material).forEach(m=>{m.needsUpdate=true})});
+  if(skyM&&skyM.material)skyM.material.needsUpdate=true;
+}
+function size(){
+  W=innerWidth;H=innerHeight;const pr=Math.min(res/Math.max(W,H),5);
+  renderer.setPixelRatio(pr);renderer.setSize(W,H,false);cam.aspect=W/H;cam.updateProjectionMatrix();
+  if(composer){composer.setPixelRatio(pr);composer.setSize(W,H)}
+}
+/* ---------- نهار / ليل ---------- */
+const dayF=SRGB('#c9d3d8'),nightF=SRGB('#0a0f1c'),lampD=SRGB('#9a927a'),lampN=SRGB('#fff0b8');
+function applyTOD(k){
+  hemi.intensity=.85-.63*k;sun.intensity=1.25*(1-k);moon.intensity=.35*k;skyU.night.value=k;scene.fog.color.copy(dayF).lerp(nightF,k);
+  renderer.toneMappingExposure=1+.3*k;bMat.emissiveIntensity=k*1.4;lampM.color.copy(lampD).lerp(lampN,k);
+  beamM.opacity=k*.3;BPM.opacity=k*.4;poolM.opacity=k*.6;HL.forEach(l=>l.intensity=3.2*k);
+  RDM.roughness=.92-.5*k;groundM.roughness=1-.25*k;if(bloom)bloom.strength=.4+.5*k;if(finalP)finalP.uniforms.night.value=k;
+}
+/* ---------- الرسم كل فريم ---------- */
+function render(){
+  const t=performance.now()/1000,dtr=Math.min(.1,t-lastT);lastT=t;
+  if(night!==nightT){night+=Math.sign(nightT-night)*Math.min(Math.abs(nightT-night),dtr*.7);applyTOD(night);if(night===nightT)regenEnv()}
+  skyU.time.value=t;
+  const w=wp(pos),rx=-w.dz,rz=w.dx,ex=w.x+rx*px*HW,ez=w.z+rz*px*HW;
+  player.position.set(ex,0,ez);player.rotation.y=Math.atan2(w.dx,w.dz)-hd;
+  const sx=shake>0?rnd(-1,1)*shake*.25:0,sy=shake>0?rnd(-1,1)*shake*.2:0;
+  chd+=(hd*.85-chd)*Math.min(1,dtr*4);const ca=Math.cos(chd),sa=Math.sin(chd),cdx=w.dx*ca+rx*sa,cdz=w.dz*ca+rz*sa;
+  cam.position.set(ex-cdx*10.5+sx,3.6+sy,ez-cdz*10.5);cam.lookAt(ex+cdx*3,1.1,ez+cdz*3);
+  const sp=Math.min(1.4,speed/MAX);cam.fov=52+sp*14;cam.updateProjectionMatrix();skyM.position.copy(cam.position);radM.color.set(flash>0?'#ffffff':'#ee3333');
+  cars.forEach((c,i)=>{const m=carM[i],v=c.rel>-1000&&c.rel<58000;m.visible=v;if(!v)return;const q=wp(c.z);m.position.set(q.x-q.dz*c.off*HW,0,q.z+q.dx*c.off*HW);m.rotation.y=Math.atan2(q.dx,q.dz)+(c.tk?Math.sin(t*.9+c.ph)*.05:0)});
+  if(post){try{finalP.uniforms.speed.value=Math.max(0,sp-.55)*(.6+(key.n?.6:0));composer.render()}catch(e){setFX(false);renderer.render(scene,cam)}}else renderer.render(scene,cam);
+}
+
+/* ===== maps.js ===== */
+/* ============================================================
+   maps.js — خرائط حقيقية (OpenStreetMap عبر Leaflet)
+   - ماب صغيرة دايرية بتلف مع اتجاهك (زي ألعاب السباق)
+   - خريطة كاملة بتفتحها من زرار 🗺 وعليها المسار والمناطق والمعالم ومكانك
+   ============================================================ */
+let mini=null,miniTiles=null,bigM=null,bigTiles=null,bigPlayer=null,mapsOK=false,mmT=0,bigOpen=false;
+const mapOpts={zoomControl:false,attributionControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,zoomSnap:0,fadeAnimation:false,zoomAnimation:false,markerZoomAnimation:false};
+const tileUrl=()=>night>.5?CFG.tiles.night:CFG.tiles.day;
+function poiIcon(t){return L.divIcon({className:'poi',html:t,iconSize:[22,22],iconAnchor:[11,11]})}
+function initMaps(){
+  try{
+    if(typeof L==='undefined'||!L.map)return;
+    mini=L.map('mmap',Object.assign({zoom:16,center:toLL(PX[0],PZ[0])},mapOpts));
+    miniTiles=L.tileLayer(tileUrl(),{maxZoom:19,subdomains:'abcd',crossOrigin:true}).addTo(mini);
+    L.polyline(ROUTE_LL,{color:'#f4c20d',weight:7,opacity:.95}).addTo(mini);
+    RAD.forEach(r=>L.marker(toLL(PX[r],PZ[r]),{icon:poiIcon('📷'),interactive:false}).addTo(mini));
+    L.marker(toLL(PX[GAS[0]],PZ[GAS[0]]),{icon:poiIcon('⛽'),interactive:false}).addTo(mini);
+    L.marker(toLL(PX[WRK[0]],PZ[WRK[0]]),{icon:poiIcon('🔧'),interactive:false}).addTo(mini);
+    mapsOK=true;
+  }catch(e){mapsOK=false}
+}
+function updateMini(){
+  if(!mapsOK||(mmT++%12))return;
+  try{
+    const w=wp(pos),ll=toLL(w.x,w.z),bearing=Math.atan2(w.dx,-w.dz)*180/Math.PI;
+    mini.invalidateSize(false);mini.setView(ll,16,{animate:false});
+    document.getElementById('mmrot').style.transform='rotate('+(-bearing)+'deg)';
+    if(miniTiles&&miniTiles._url!==tileUrl())miniTiles.setUrl(tileUrl());
+    document.getElementById('mini').classList.toggle('nt',night>.5);
+  }catch(e){}
+}
+/* ---------- الخريطة الكاملة ---------- */
+function openBigMap(){
+  const box=document.getElementById('big');box.hidden=false;bigOpen=true;
+  if(typeof L==='undefined'||!L.map){document.getElementById('bnote').textContent='مكتبة الخرائط (Leaflet) ماتحملتش — تأكد من الاتصال بالنت.';return}
+  try{
+    if(!bigM){
+      bigM=L.map('bmap',{zoomControl:true,attributionControl:false});
+      L.control.attribution({prefix:false}).addAttribution('© OpenStreetMap contributors').addTo(bigM);
+      bigTiles=L.tileLayer(tileUrl(),{maxZoom:19,subdomains:'abcd',crossOrigin:true}).addTo(bigM);
+      const line=L.polyline(ROUTE_LL,{color:'#f4a300',weight:6,opacity:.95}).addTo(bigM);
+      ZN.forEach((n,z)=>{const i=z===7?OE+((N-OE)>>1):(ZB[z]+(ZB[z+1]||N))>>1;L.marker(toLL(PX[i%N],PZ[i%N]),{icon:L.divIcon({className:'zlab',html:n,iconSize:[110,22],iconAnchor:[55,-6]}),interactive:false}).addTo(bigM)});
+      LANDMARKS.forEach(m=>L.circleMarker([m[0],m[1]],{radius:6,color:'#fff',weight:2,fillColor:'#c0392b',fillOpacity:1}).bindTooltip(m[2],{permanent:true,direction:'top',className:'ltip'}).addTo(bigM));
+      RAD.forEach(r=>L.marker(toLL(PX[r],PZ[r]),{icon:poiIcon('📷')}).addTo(bigM));
+      L.marker(toLL(PX[GAS[0]],PZ[GAS[0]]),{icon:poiIcon('⛽')}).addTo(bigM);L.marker(toLL(PX[WRK[0]],PZ[WRK[0]]),{icon:poiIcon('🔧')}).addTo(bigM);
+      bigPlayer=L.circleMarker(toLL(PX[0],PZ[0]),{radius:9,color:'#fff',weight:3,fillColor:'#d9482b',fillOpacity:1}).addTo(bigM);
+      bigM.fitBounds(line.getBounds(),{padding:[20,20]});
+    }
+    setTimeout(()=>{bigM.invalidateSize();const w=wp(pos);bigPlayer.setLatLng(toLL(w.x,w.z));if(bigTiles._url!==tileUrl())bigTiles.setUrl(tileUrl())},60);
+  }catch(e){document.getElementById('bnote').textContent='تعذّر عرض الخريطة.'}
+}
+function closeBigMap(){document.getElementById('big').hidden=true;bigOpen=false}
+function updateBig(){if(!bigOpen||!bigM||(mmT%20))return;try{const w=wp(pos);bigPlayer.setLatLng(toLL(w.x,w.z))}catch(e){}}
+
+/* ===== game.js ===== */
+/* ============================================================
+   game.js — الفيزياء، الزحمة، الأحداث، التحكم، الواجهة، التشغيل
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const rnd=(a,b)=>a+Math.random()*(b-a);
+let pos=0,speed=0,px=0,steer=0,sv=0,brake=false,st='menu',time=300,dist=0,over=0,crash=0,shake=0,fuel=100,dmg=0,nit=100,flash=0,msgT=0,lastR=-1,paused=false,best=0,sens=1,tick=0,PL=[];
+try{best=+localStorage.getItem('tt-best')||0}catch(e){}
+const kmh=()=>speed*U*3.6*.75;               // السرعة المعروضة (أقصى سرعة ≈ 150 كم/س)
+const key={},cars=[],COL=['#f4c20d','#2f9e6b','#3a6fd8','#d9482b','#e8e2d0'];
+const touch=matchMedia('(pointer:coarse)').matches;
+const S={res:3840,sens:1,fx:1,auto:0};   // Ultra HD 4K + HDR ثابتين
+
+function initCars(){cars.length=0;
+  for(let i=0;i<CFG.traffic;i++){const r0=Math.random(),ty=r0<.22?0:r0<.42?1:r0<.6?4:r0<.78?5:r0<.86?2:r0<.94?3:6;
+    cars.push({z:rnd(0,TL),base:[-.75,-.25,.25,.75][i%4]+rnd(-.08,.08),off:0,tk:ty===0,ty,sp:MAX*[rnd(.2,.38),rnd(.42,.6),rnd(.3,.45),rnd(.25,.4),rnd(.4,.55),rnd(.35,.55),rnd(.35,.5)][ty],c:COL[i%5],ph:rnd(0,6),rel:0,hit:0})}}
+function buildPL(){PL=[...ZN.map((n,z)=>({n,i:ZB[z]})),...RAD.map(r=>({n:'رادار',i:r})),{n:'محطة بنزين',i:GAS[0]},{n:'ورشة صيانة',i:WRK[0]}]}
+function msg(t,c){const m=$('msg');m.textContent=t;m.style.background=c||'rgba(12,16,24,.8)';m.style.opacity=1;msgT=2.2}
+function places(){if((tick++&7)!==0)return;const o=PL.map(p=>({n:p.n,d:((p.i*SL-pos+TL)%TL)*U/1000})).sort((a,b)=>a.d-b.d)[0];$('sn').textContent=o.n;$('sk').textContent=o.d.toFixed(1)+' كم'}
+
+/* ---------- أحداث: رادار، بنزين، ورشة، منطقة ---------- */
+let lastZ=-1;
+function ev(dt){
+  const sI=Math.floor(pos/SL)%N,cz=zone(sI);if(cz!==lastZ){lastZ=cz;$('zn').textContent=ZN[cz]}
+  if(st==='run'){
+    fuel=Math.max(0,fuel-dt*(.15+.45*speed/MAX));if(fuel<=0&&msgT<=0)msg('البنزين خلص! دوّر على محطة','#d9482b');
+    for(const r of RAD){const d=(sI-r+N)%N;if(d<4&&lastR!==r){lastR=r;
+      if(kmh()>LIM+3){time=Math.max(0,time-5);flash=.35;msg('اتصورت! غرامة ٥ ثواني','#d9482b')}else{time+=2;msg('عدّيت الرادار سليم +٢ ثانية','#1f7a4a')}}}
+    if(lastR>=0&&(sI-lastR+N)%N>=6)lastR=-1;
+    const slow=speed<MAX*.4;
+    if(slow&&px>.96&&sI>=GAS[0]&&sI<=GAS[1])fuel=Math.min(100,fuel+30*dt);
+    if(slow&&px<-.96&&sI>=WRK[0]&&sI<=WRK[1])dmg=Math.max(0,dmg-40*dt);
+  }
+  if(msgT>0){msgT-=dt;if(msgT<=0)$('msg').style.opacity=0}
+  if(flash>0)flash-=dt;$('fl').style.opacity=Math.max(0,flash*2);
+}
+/* ---------- فيزياء: نموذج سيارة (اتجاه نسبي للطريق + انزلاق) ---------- */
+function update(dt){
+  const pct=Math.min(1,speed/MAX),seg=segs[Math.floor(pos/SL)%N];
+  if(st==='run'){
+    const gas=key.g||S.auto,base=fuel<=0?MAX*.2:MAX*(1-dmg/100*.35),nOn=!!key.n&&nit>0&&!brake&&!key.h&&fuel>0;
+    nit=nOn?Math.max(0,nit-35*dt):Math.min(100,nit+8*dt);
+    if(brake)speed-=MAX*.6*dt;else if(key.h)speed-=MAX*.3*dt;else if(nOn)speed+=MAX*.9*dt;
+    else if(gas){if(speed<base)speed+=MAX*(.28*(1-pct*pct)+.02)*dt;else if(speed>base)speed=Math.max(base,speed-MAX*.6*dt)}
+    else speed=Math.max(0,speed-MAX*(speed>base?.6:.1)*dt);
+    if(Math.abs(px)>1.02)speed=Math.max(speed-MAX*.5*dt,Math.min(speed,MAX*.25));
+    speed=Math.max(0,Math.min(nOn?base*1.35:1e9,speed));
+    sv+=(steer-sv)*Math.min(1,dt*9);
+    const vm=speed*U,kap=seg.dh/SG,ym=Math.min(2.2,2.4/(1+vm/14))*sens*(key.h?1.5:1),yawc=sv*ym*Math.min(1,vm/4);
+    hd+=(yawc-vm*kap)*dt;hd-=hd*(key.h?.7:3.2)*dt;hd=Math.max(-.9,Math.min(.9,hd));
+    px+=vm*Math.sin(hd)*dt/HW;px=Math.max(-1.25,Math.min(1.25,px));
+    const si=Math.floor(pos/SL)%N,rM=(si>=GAS[0]&&si<=GAS[1])?1.25:.92,lM=(si>=WRK[0]&&si<=WRK[1])?-1.25:-.92;
+    if(px>rM){hd*=.9;px=Math.max(rM,px-dt*2);if(rM<1)speed=Math.max(speed-MAX*.35*dt,Math.min(speed,MAX*.25))}
+    if(px<lM){hd*=.9;px=Math.min(lM,px+dt*2);if(lM>-1)speed=Math.max(speed-MAX*.35*dt,Math.min(speed,MAX*.25))}
+    time-=dt;dist+=speed*dt*U;if(time<=0){time=0;end()}
+  }else speed=MAX*.3;
+  ev(dt);
+  pos=(pos+speed*dt)%TL;if(shake>0)shake=Math.max(0,shake-dt*1.6);
+  const t=performance.now()/1000;
+  for(const c of cars){const pr=c.rel;c.z=(c.z+c.sp*dt)%TL;c.off=c.base+(c.tk?Math.sin(t*.9+c.ph)*.09:0);
+    let r=((c.z-pos+TL*1.5)%TL)-TL/2;
+    if(r<-20000||r>65000){c.z=(pos+rnd(30000,55000))%TL;c.hit=0;r=((c.z-pos+TL*1.5)%TL)-TL/2}c.rel=r;
+    if(st==='run'){
+      if(pr>0&&r<=0&&pr<TL/4){over++;time+=1.5}
+      if(r>0&&r<SL*.8&&Math.abs(c.off-px)<F*.95&&speed>c.sp&&c.hit<=0){crash++;hd+=(Math.random()<.5?-1:1)*.35;dmg=Math.min(100,dmg+20);time=Math.max(0,time-3);speed=Math.max(MAX*.12,c.sp*.5);shake=.5;c.hit=1}}
+    if(c.hit>0)c.hit-=dt}
+}
+/* ---------- صوت الموتور ---------- */
+let AC,eo,eg;
+function engInit(){try{if(AC)return;AC=new(window.AudioContext||window.webkitAudioContext)();eo=AC.createOscillator();eg=AC.createGain();eo.type='sawtooth';eg.gain.value=0;const f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=900;eo.connect(f);f.connect(eg);eg.connect(AC.destination);eo.start()}catch(e){}}
+function engine(){if(!eo)return;const p=Math.min(1.35,speed/MAX),g=Math.min(5,Math.floor(p*5)+1),r=(p*5)%1;eo.frequency.value=55+r*140+g*12;eg.gain.value=(st==='run'&&!paused)?.03+.03*((key.g||S.auto||key.n)?1:0):0}
+function horn(){try{engInit();const a=AC;[420,530].forEach(f=>{const o=a.createOscillator(),v=a.createGain();o.type='square';o.frequency.value=f;v.gain.value=.05;o.connect(v);v.connect(a.destination);o.start();o.stop(a.currentTime+.35)})}catch(e){}}
+/* ---------- الواجهة ---------- */
+const E={};['tm','ov2','km','sp','gear','rpmf','fu','dm','nt'].forEach(i=>E[i]=$(i));
+function hud(){
+  places();engine();
+  const p=Math.min(1.35,speed/MAX),g=Math.min(5,Math.floor(p*5)+1);
+  E.sp.textContent=Math.round(kmh());
+  E.gear.textContent=g;E.rpmf.style.width=Math.min(100,((p*5)%1)*85+15*Math.min(1,p*5))+'%';
+  E.tm.textContent=Math.max(0,Math.ceil(time));E.ov2.textContent=over;E.km.textContent=Math.floor(dist/LT)+1;
+  E.fu.style.width=fuel+'%';E.dm.style.width=(100-dmg)+'%';E.nt.style.width=nit+'%';
+}
+function start(){
+  try{screen.orientation.lock('landscape')}catch(e){}
+  engInit();hd=0;chd=0;pos=0;speed=0;px=0;time=300;nit=100;fuel=100;dmg=0;lastR=-1;dist=0;over=0;crash=0;steer=0;sv=0;
+  cars.forEach(c=>{c.z=rnd(10000,55000);c.hit=0});st='run';$('ov').hidden=true;document.body.classList.add('playing');
+  setTimeout(()=>{if(typeof mini!=='undefined'&&mini)mini.invalidateSize()},50);
+}
+function end(){
+  st='over';if(eg)eg.gain.value=0;document.body.classList.remove('playing');
+  const sc=over*10+Math.round(dist/200)-crash*5;if(sc>best){best=sc;try{localStorage.setItem('tt-best',best)}catch(e){}}
+  $('t').textContent='الوقت خلص';$('d').innerHTML='النتيجة: <b>'+sc+'</b> · أحسن نتيجة: <b>'+best+'</b><br>تعدّيت '+over+' · خبطات '+crash+' · '+(dist/1000).toFixed(1)+' كم';$('go').textContent='العب تاني';$('ov').hidden=false;
+}
+/* ---------- التحكم ---------- */
+function sk(){steer=(key.l?-1:0)+(key.r?1:0);brake=!!key.b}
+function bind(id,k){const el=$(id);
+  const on=e=>{e.preventDefault();if(!key[k]&&navigator.vibrate)navigator.vibrate(8);key[k]=1;el.classList.add('on');sk()},off=()=>{key[k]=0;el.classList.remove('on');sk()};
+  el.addEventListener('pointerdown',e=>{try{el.setPointerCapture(e.pointerId)}catch(x){}on(e)});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(v=>el.addEventListener(v,off));
+  el.addEventListener('contextmenu',e=>e.preventDefault())}
+[['lb','l'],['rb','r'],['gs','g'],['bk','b'],['hb','h'],['ni','n']].forEach(a=>bind(a[0],a[1]));
+const KM={ArrowLeft:'l',a:'l',ArrowRight:'r',d:'r',ArrowUp:'g',w:'g',ArrowDown:'b',s:'b',' ':'b',n:'n',Shift:'n',h:'h'};
+addEventListener('keydown',e=>{const k=KM[e.key];if(k){key[k]=1;sk();e.preventDefault()}});
+addEventListener('keyup',e=>{const k=KM[e.key];if(k){key[k]=0;sk()}});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+$('ps').onclick=()=>{paused=!paused;$('ps').textContent=paused?'▶':'❚❚'};
+$('hn').addEventListener('pointerdown',e=>{e.preventDefault();horn()});
+$('tn').onclick=()=>{nightT=nightT?0:1;$('tn').textContent=nightT?'🌙':'☀️'};
+$('mp').onclick=()=>{paused=true;openBigMap()};
+$('bx2').onclick=()=>{closeBigMap();paused=false;$('ps').textContent='❚❚'};
+$('go').onclick=start;
+// إعدادات كارت البداية
+document.querySelectorAll('[data-set]').forEach(g=>{const k=g.dataset.set;
+  const mark=()=>g.querySelectorAll('button').forEach(b=>b.classList.toggle('on',String(S[k])===b.dataset.v));
+  g.querySelectorAll('button').forEach(b=>b.onclick=()=>{S[k]=+b.dataset.v;mark();
+    if(k==='sens')sens=S.sens});
+  mark()});
+/* ---------- حلقة اللعب + التشغيل ---------- */
+let last=0,fpsN=0,fpsT=0;
+function loop(ts){requestAnimationFrame(loop);const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  fpsN++;if(ts-fpsT>500){const el=$('fps');if(el&&fpsT)el.textContent=Math.round(fpsN*1000/(ts-fpsT))+' FPS';fpsN=0;fpsT=ts}
+  try{if(!paused)update(dt);render();if(st==='run')hud();updateMini();updateBig()}catch(e){console.error(e)}}
+async function boot(){
+  window.__booted=true;
+  try{
+    if(typeof THREE==='undefined'||typeof buildWorld!=='function')throw new Error('مكتبة Three.js ماتحملتش');
+    $('lt').textContent='جاري تحميل مسار القاهرة…';await loadRoute();
+    buildPL();initCars();$('lt').textContent='جاري بناء العالم ثلاثي الأبعاد…';await new Promise(r=>setTimeout(r,40));
+    res=S.res;sens=S.sens;fxWanted=!!S.fx;buildWorld();initMaps();
+    $('lt').textContent='';$('loading').classList.add('off');
+    if(ROUTE_SRC!=='OSRM')setTimeout(()=>msg('المسار الاحتياطي شغّال (OSRM مش متاح دلوقتي)'),500);
+    requestAnimationFrame(loop);
+  }catch(e){$('lt').textContent='حصلت مشكلة في التحميل: '+e.message;console.error(e)}
+}
+addEventListener('resize',()=>{if(renderer)size()});
+boot();
+
+</script>
+<noscript><p style="position:fixed;inset:auto 0 20px;text-align:center;z-index:99">لازم تفعّل JavaScript</p></noscript>
+<script>
+(function(){
+  var V='20251027a',EX='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/';
+  function say(m){var e=document.getElementById('lt');if(e)e.textContent=m}
+  window.addEventListener('error',function(ev){var t=ev.target;if(t&&t.tagName)return;say('خطأ: '+ev.message+' ('+String(ev.filename||'').split('/').pop()+':'+ev.lineno+')')});
+  function load(src,must,ms){return new Promise(function(ok,no){
+    var s=document.createElement('script'),done=false;s.src=src;s.async=false;
+    var fin=function(good){if(done)return;done=true;clearTimeout(t);good?ok(true):(must?no(new Error(src)):ok(false))};
+    var t=setTimeout(function(){fin(false)},ms||(must?25000:9000));
+    s.onload=function(){fin(true)};s.onerror=function(){fin(false)};document.head.appendChild(s)})}
+  (async function(){
+    try{
+      say('جاري تحميل المكتبات…');
+      var ok=false,T=['https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js','https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js','https://unpkg.com/three@0.128.0/build/three.min.js'];
+      for(var i=0;i<T.length&&!ok;i++){try{ok=await load(T[i],true,12000)}catch(e){}}
+      if(!ok){say('Three.js ماتحملتش — اتأكد من النت أو جرّب شبكة تانية');return}
+      // مكتبات اختيارية: لو فشلت اللعبة بتشتغل من غيرها (بدون التأثيرات / الخرائط)
+      var opt=['shaders/CopyShader.js','shaders/LuminosityHighPassShader.js','postprocessing/EffectComposer.js','postprocessing/RenderPass.js','postprocessing/ShaderPass.js','postprocessing/MaskPass.js','postprocessing/UnrealBloomPass.js','loaders/GLTFLoader.js','loaders/DRACOLoader.js'];
+      say('جاري تحميل التأثيرات…');
+      for(var j=0;j<opt.length;j++)await load(EX+opt[j],false);
+      say('جاري تحميل الخرائط…');
+      await load('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',false);
+            var el=document.createElement('script');el.textContent=document.getElementById('gsrc').textContent;document.head.appendChild(el);
+    }catch(e){say('خطأ في التحميل: '+e.message)}
+  })();
+  setTimeout(function(){if(!window.__booted)say('اللعبة ماشتغلتش لسه — اتأكد من النت')},30000);
+})();
+</script>
+
+</body>
+</html>
